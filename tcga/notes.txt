@@ -1,0 +1,33 @@
+From: https://plus.google.com/113568026579050238688/posts/gYAPcyA1K2a
+
+A comment on the Elasticsearch couchDB river:
+Suppose you have gathered a bunch of documents (e.g., the entire arxiv) into a couchDB database and you want to make them searchable. If you are me, you set up Elasticsearch (hereafter ES) with the couchDB river (https://github.com/elasticsearch/elasticsearch-river-couchdb). You play with it, then you realize that you want to change the mapping on the index. What do you do?
+
+Here's the key thing you must remember: if you want to force ES to reindex your DB via the river, you need to (?) delete the _river index. Then you can recreate the _river index in the usual way. Concretely, if you are running ES on localhost:9200, do this:
+
+curl -XDELETE 'localhost:9200/_river'
+
+Also, if you want to update the mapping, add custom analyzers, etc., delete the existing index. Let us suppose it is called 'cheese':
+
+curl -XDELETE 'localhost:9200/cheese'
+
+Now, you can put your analyzers, mappings, etc., back into ES. Suppose you have put (say) a custom analyzer and some index settings into setup.json and mappings for mapping type chevre into mapping.json. Do this:
+
+curl -XPUT 'localhost:9200/cheese' -d @settings.json
+curl -XPUT 'localhost:9200/cheese/chevre/_mapping' -d @mapping.json
+
+Finally, say you have put the JSON object parametrizing the river (see the github link) into a file river.json. To restart the river:
+
+curl -XPUT 'localhost:9200/_river/cheese/_meta' -d @river.json
+
+For kicks, you can run
+
+curl -XGET 'localhost:9200/cheese/_search?pretty=true'
+
+to watch the river fill up your ES index, and
+
+curl -XGET 'localhost:9200/cheese/_mapping?pretty=true'
+
+to make sure that your mapping made it onto the scene.
+
+It's that easy! (This took me a while to figure out because I am an idiot. I hope that some other idiot finds this useful.)

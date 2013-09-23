@@ -1,0 +1,20 @@
+key_server:
+    url: "https://example.org"
+    key_database: keys
+    username: example 
+    password: exaple
+
+metadata_server:
+    url: "http://example.org"
+    tcga:
+        cghub_database: example
+        cghub_username: example
+        cghub_password: example
+        osdc_database: example
+        osdc_username: example
+        osdc_password: example
+
+data_location:
+    tcga: 
+        server: "example.org"
+        folder: "/example/data"

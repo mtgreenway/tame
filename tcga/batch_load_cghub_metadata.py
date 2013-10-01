@@ -64,17 +64,25 @@ def update_osdc_metadata(config, analysis, md5_ok=False, last_md5_check=None):
 
     osdc_response = requests.get(osdc_url, verify=False)
 
-    if osdc_response.status_code == 404:
+    if osdc_response.status_code == 404 and os.path.isdir(data_dir):
         osdc_meta = {}
         osdc_meta["_id"] = analysis["_id"]
         osdc_meta["downloaded"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(os.path.getmtime(data_dir)))
+        osdc_meta["md5_ok"] = md5_ok
+        osdc_meta["last_md5_check"] = last_md5_check
     elif osdc_response.status_code == 200:
         osdc_meta = osdc_response.json()
+        #keep the original md5 value if the last_md5_check isn't set, otherwise update it
+        if last_md5_check is not None:
+            osdc_meta["md5_ok"] = md5_ok
+            osdc_meta["last_md5_check"] = last_md5_check
+    else:
+        print("WARNING: either unexpected status code %d or dir %s doesn't not exist, skipping" % (osdc_response.status_code, data_dir))
+        return None
+        
 
     #everthing is backedup...not doing anything with this field right now
     osdc_meta["backedup"] = True
-    osdc_meta["md5_ok"] = md5_ok
-    osdc_meta["last_md5_check"] = last_md5_check
 
     #print("osdc_meta: %s" % osdc_meta)
     osdc_resp = requests.put(osdc_url, auth=(osdc_username, osdc_password), data=json.dumps(osdc_meta), verify=False)

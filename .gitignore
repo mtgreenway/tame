@@ -36,3 +36,9 @@ nosetests.xml
 
 #emacs
 *~
+
+#configs with passwords
+tcga/config/local_config.yaml
+
+#ignore dir
+tcga/ignore/

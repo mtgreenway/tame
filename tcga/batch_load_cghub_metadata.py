@@ -2,6 +2,7 @@ import xml.etree.ElementTree as ET
 import sys, os
 import json, yaml, uuid, time, argparse
 import requests
+import sqlalchemy
 
 def load_config(config_filename):
     f = open(config_filename)
@@ -146,15 +147,27 @@ def load_cghub_metadata(config, xmlfile, md5filename=None):
             print("analysis_id\t" + elementdict["analysis_id"])
 
             analysis_url = "".join([metadata_url, "/", cghub_db, "/_design/find_docs/_view/by_analysis_id?key=", '"', elementdict["analysis_id"], '"'])
-            #print("analysis_url\t" + analysis_url)
+            print("analysis_url\t" + analysis_url)
             exists_response = requests.get(analysis_url, verify=False).json()
             if "error" in exists_response:
                 print(exists_response)
 
-            num_rows = len(exists_response["rows"])
+            try:
+                num_rows = len(exists_response["rows"])
+	    except KeyError:
+                num_rows = 0
 
             if num_rows == 0:
                 #analysis not in couchdb yet
+                for table in ["clinical_patient"]:
+                    if "participant_id" in elementdict:
+                        engine = sqlalchemy.create_engine('postgresql://test:test@localhost:5432/tcga')
+                        with engine.connect() as conn:
+                           rows = conn.execute("select * from %s_%s where lower(bcr_patient_uuid) = '%s';" % (table, elementdict["disease_abbr"], elementdict["participant_id"]))
+                        for row in rows:
+                            for column_name, value in row.items():
+                                elementdict[column_name] = value
+                  
                 cghub_resp = update_cghub_metadata(config, elementdict, attachments)
                 elementdict["_id"] = cghub_resp["id"]
                 elementdict["_rev"] = cghub_resp["rev"]
